@@ -3,7 +3,7 @@ import numpy as np
 
 class LinearRegression():
     # will take optional parameters for number of epochs (passes through the data) and learning rate 
-    def __init__(self, num_epochs=5, learning_rate=0.1):
+    def __init__(self, num_epochs=5, learning_rate=0.01):
         # weights matrix should be based on the number of features 
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
@@ -23,13 +23,13 @@ class LinearRegression():
         # bias just shifts the values by a certain amount, so it needs only to be a scalar
         num_training_examples, num_features = np.shape(training_data)
         # initalize with random values, uses low, high, and size  which is 1 x num features 
-        self.weights = np.random.uniform(-1, 1, (num_features, 1))
-        self.bias = np.random.uniform(-1, 1)
+        # keep it float32 because we don't need so much precision, but want speed
+        self.weights = np.random.uniform(-1, 1, (num_features, 1)).astype(np.float32)
+        # don't use astype, bacause bias is just one value ! 
+        self.bias = np.float32(np.random.uniform(-1, 1))
         self.train(training_data, train_labels)
 
     def forward(self, x):
-        if not self.weights:
-            raise Exception("Fit function has not been called yet, you should call the fit function first.")
         return np.matmul(x, self.weights)  + self.bias
 
     def predict(self, x):
@@ -42,6 +42,7 @@ class LinearRegression():
         # batch gradient descent, we sum the gradients and then average it and update the values based on that 
         total_gradient = 0
         bias_gradient = 0
+
         # follow update rule, find the sum of the errors, which is (yi - yhat(i))*xj(i)
         # we don't need to do this for every theta j, because I am already providing y and yhat as vectors, and since I'm using np vector operations, I'm already accounting for all updates to parameters in theta
         # when i do (y - yhat) * x, I'm doing this to vectors meaning I'm doing this to every data point and for every parameter, at the same time, meaning each value in theta is getting it's own gradient contribution at the same
@@ -55,17 +56,28 @@ class LinearRegression():
             # bias represents an offset, so it doesn't need to take into account the input value
             bias_gradient += (y_at_idx - yhat_at_idx)
         # once summed, update the value by multiplying the learning rate
+        # reshape total_gradient
+        total_gradient = total_gradient.reshape(self.weights.shape)
         self.weights += learning_rate * total_gradient / len(y)
         self.bias += learning_rate * bias_gradient / len(y)
 
     def train(self, train_inputs, train_labels):
-        # train inputs n x m, where n is the number of examples, and m in the input features 
+        # train inputs n x m, where n is the number of examples, and m is the input features 
+        print("Starting training")
         for epoch in range(self.num_epochs):
             print(f"Training on Epoch {epoch}")
+            
+            # Forward pass to predict
             yhat = self.forward(train_inputs)
+            
+            # Calculate loss (MSE as an example)
+            loss = np.mean((train_labels - yhat) ** 2)  # Mean Squared Error
+            
+            # Print loss for this epoch
+            print(f"Epoch {epoch} Loss (MSE): {loss}")
+            
+            # Update weights using gradient descent
             self.update(self.learning_rate, train_labels, yhat, train_inputs)
-
-
 
 
 '''
